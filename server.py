@@ -1,12 +1,13 @@
 from socket import *
 from threading import Thread
+from common import *
 
 PORT = 6000
 ADDRESS = '0.0.0.0'
 
 # setup listening socket
-server_socket = socket(AF_INET, SOCK_STREAM)
-server_socket.bind((ADDRESS, PORT))
+server_socket = MyIRCSocket()
+server_socket.bind(ADDRESS, PORT)
 server_socket.listen()
 
 print('listening on port: ' + str(PORT))
@@ -17,11 +18,12 @@ client_sockets = set()
 # client socket listener
 def listen_to_client(socket):
     while True:
-        message = socket.recv(1024).decode()
+        message = socket.recv()
+        print('server received: ' + message)
 
         # broadcast the message to all connected clients
         for s in client_sockets:
-            s.send(message.encode())
+            s.send(message)
 
 # accept new connections
 while True:
