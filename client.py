@@ -15,11 +15,24 @@ def listen_to_server(socket):
         message = socket.recv()
         print(message)
 
-# start listen on a thread so we can also accept user input
+# listen on a thread so we can also accept user input
 thread = Thread(target=listen_to_server, args=[client_socket])
 thread.start()
+
+def handle_command(command, args):
+    if command == CommandType.QUIT:
+        quit()
+
+def handle_message(msg):
+    client_socket.send(from_console)
+
+parser = InputParser()
 
 # wait for user input, send it as a message to the server
 while True:
     from_console = input()
-    client_socket.send(from_console)
+    parser.parse_input(from_console)
+    if parser.input_type == InputType.COMMAND:
+        handle_command(parser.command, parser.args)
+    elif parser.input_type == InputType.MESSAGE:
+        handle_message(parser.message_text)
