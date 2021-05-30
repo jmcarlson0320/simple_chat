@@ -1,6 +1,6 @@
-from socket import *
+from irc_socket import *
+from input_parser import *
 from threading import Thread
-from common import *
 
 PORT = 6000
 ADDRESS = '127.0.0.1'
