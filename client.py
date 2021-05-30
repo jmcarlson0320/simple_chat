@@ -1,6 +1,8 @@
 from irc_socket import *
 from input_parser import *
+import sys
 from threading import Thread
+from common import *
 
 PORT = 6000
 ADDRESS = '127.0.0.1'
@@ -12,7 +14,7 @@ client_socket.connect(ADDRESS, PORT)
 # runs in a thread, handles incomming messages
 def listen_to_server(socket):
     while True:
-        message = socket.recv()
+        message = socket.recv(EOM)
         print(message)
 
 # listen on a thread so we can also accept user input
@@ -21,10 +23,12 @@ thread.start()
 
 def handle_command(command, args):
     if command == CommandType.QUIT:
-        quit()
+        sys.exit()
+    if command == CommandType.JOIN:
+        client_socket.send(IRCCommand(command, args))
 
 def handle_message(msg):
-    client_socket.send(from_console)
+    client_socket.send(msg + EOM)
 
 parser = InputParser()
 

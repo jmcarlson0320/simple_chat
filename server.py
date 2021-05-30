@@ -1,5 +1,6 @@
 from irc_socket import *
 from threading import Thread
+from common import *
 
 PORT = 6000
 ADDRESS = '0.0.0.0'
@@ -17,12 +18,12 @@ client_sockets = set()
 # client socket listener
 def listen_to_client(socket):
     while True:
-        message = socket.recv()
+        message = socket.recv(EOM)
         print('server received: ' + message)
 
         # broadcast the message to all connected clients
         for s in client_sockets:
-            s.send(message)
+            s.send(message + EOM)
 
 # accept new connections
 while True:

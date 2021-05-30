@@ -1,7 +1,6 @@
 from socket import *
+from common import *
 
-# end of message delimiter
-EOM = '<END>'
 CHUNK_SIZE = 1024
 
 class MyIRCSocket:
@@ -22,18 +21,16 @@ class MyIRCSocket:
         self.socket.connect((host, port))
 
     def send(self, msg):
-        # add end of message marker to end of message
-        msg += EOM
         # count bytes sent to make sure we send all of the message
         # could take multiple calls to send()
         total_sent = 0
         while total_sent < len(msg):
             num_bytes = self.socket.send(msg[total_sent:].encode())
             if num_bytes == 0:
-                raise RunTimeError('could not send')
+                print('could not send')
             total_sent += num_bytes
 
-    def recv(self):
+    def recv(self, end_marker):
         # buffer to hold pieces of message if it arrives in multiple
         # transmissions
         chunks = []
@@ -48,18 +45,18 @@ class MyIRCSocket:
         while not end_of_message:
             chunk = self.socket.recv(CHUNK_SIZE).decode()
             if not chunk:
-                raise RunTimeError('could not receive')
+                print('could not receive')
 
             # find the end-of-message marker
-            index_of_EOM = chunk.find(EOM)
+            index_of_EOM = chunk.find(end_marker)
             # if end found
             if index_of_EOM != -1:
                 # get rest of transmission
                 chunks.append(chunk[:index_of_EOM])
                 # check if we grabbed the beginning of next transmission also
-                if len(chunk[:index_of_EOM]) > len(EOM):
+                if len(chunk[:index_of_EOM]) > len(end_marker):
                     # set aside the beginning of the next transmission
-                    self.start_of_next_transmission = chunk[(index_of_EOM + len(EOM)):]
+                    self.start_of_next_transmission = chunk[(index_of_EOM + len(end_marker)):]
                 end_of_message = True
             else:
                 chunks.append(chunk[:index_of_EOM])

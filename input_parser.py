@@ -25,7 +25,7 @@ class InputParser:
     def parse_input(self, text):
         if not text:
             self.input_type = InputType.NO_INPUT
-        if text[0] == CMD_DELIMITER:
+        elif text[0] == CMD_DELIMITER:
             text = text[1:].split(' ')
             command_string = text[0]
             self.args = text[1:]
