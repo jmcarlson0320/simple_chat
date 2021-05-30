@@ -21,6 +21,8 @@ class MyIRCSocket:
         self.socket.connect((host, port))
 
     def send(self, msg):
+        # add end marker
+        msg += EOM
         # count bytes sent to make sure we send all of the message
         # could take multiple calls to send()
         total_sent = 0
@@ -30,7 +32,7 @@ class MyIRCSocket:
                 print('could not send')
             total_sent += num_bytes
 
-    def recv(self, end_marker):
+    def recv(self, end_marker=EOM):
         # buffer to hold pieces of message if it arrives in multiple
         # transmissions
         chunks = []

@@ -18,12 +18,12 @@ client_sockets = set()
 # client socket listener
 def listen_to_client(socket):
     while True:
-        message = socket.recv(EOM)
+        message = socket.recv()
         print('server received: ' + message)
 
         # broadcast the message to all connected clients
         for s in client_sockets:
-            s.send(message + EOM)
+            s.send(message)
 
 # accept new connections
 while True:
