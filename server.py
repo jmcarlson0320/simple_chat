@@ -1,5 +1,6 @@
 from irc_socket import *
 from threading import Thread
+from threading import Lock
 from common import *
 from irc_message import *
 from user import *
@@ -15,6 +16,7 @@ server_socket.listen()
 print('listening on port: ' + str(PORT))
 
 # store users in set
+users_lock = Lock()
 users = {}
 
 # setup new connection
@@ -26,12 +28,18 @@ def new_connection(socket):
     argc = message.argc
     if message.operation == CONNECT and message.argc == 1:
         new_user = User(message.argv[0], socket)
+
+        users_lock.acquire()
         users[new_user.name] = new_user
+        users_lock.release()
+
         print('new connection')
         print('username: ' + message.argv[0])
-        listen_to_client(users[message.argv[0]])
+        listen_to_client(new_user)
     else:
         print('could not setup connection')
+        response = irc_message(ERROR, args=None, body='ERROR could not setup connection with server')
+        socket.send(response.to_string())
         socket.close()
 
 # client socket listener

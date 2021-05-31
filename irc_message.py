@@ -53,6 +53,8 @@ class irc_message:
         return cls(operation, argv, body)
 
     def to_string(self):
-        # build message
-        # return as string
-        pass
+        header = self.operation
+        if self.argv:
+            header = header + ' '.join(self.argv)
+        msg = header + '\n' + self.body
+        return msg

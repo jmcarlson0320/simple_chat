@@ -1,7 +1,8 @@
 from irc_socket import *
-from input_parser import *
+from user_input import *
 import sys
 from threading import Thread
+from threading import Lock
 from common import *
 from irc_message import *
 
@@ -15,14 +16,25 @@ SERVER_DISPATCH_MESSAGE = 'SERVER_DISPATCH_MESSAGE'
 PORT = 6000
 ADDRESS = '127.0.0.1'
 
+# signals client to shutdown
+connection_open = False;
+
 # setup client socket and connect to server
 client_socket = MyIRCSocket()
 client_socket.connect(ADDRESS, PORT)
 
+connection_open = True
+
 # runs in a thread, handles incomming messages
 def listen_to_server(socket):
+    global connection_open
     while True:
         incomming = socket.recv()
+        if not incomming:
+            print('could not connect, press any key to exit...')
+            socket.close()
+            connection_open = False
+            return
         message = irc_message.from_string(incomming)
         dispatch_message(message)
         # dispatch message to handler
@@ -41,7 +53,7 @@ def server_dispatch_message(message):
     pass
 
 def error(message):
-    pass
+    print(message.body)
 
 # unpack and check for errors here!
 # dispatch to error handlers
@@ -59,25 +71,45 @@ def dispatch_message(message):
             print('unknown message from server')
 
 ''' user input code '''
-def handle_command(command, args):
-    if command == CommandType.QUIT:
-        sys.exit()
-    elif command == CommandType.JOIN:
-        client_socket.send(IRCCommand(command, args))
+def quit_program():
+    pass
+
+def send_join_msg():
+    pass
+
+def send_leave_msg():
+    pass
+
+def send_list_rooms_msg():
+    pass
+
+def send_list_users_msg():
+    pass
+
+def send_chat_message(msg):
+    client_socket.send(msg)
+
+def dispatch_command(command, argc, argv):
+    if command == QUIT:
+        quit_program()
+    elif command == JOIN:
+        send_join_msg()
+    elif command == LEAVE:
+        send_leave_msg()
+    elif command == LIST_ROOMS:
+        send_list_rooms_msg()
+    elif command == LIST_USERS:
+        send_list_users_msg()
     else:
         print('command not recognized')
 
-def send_message(msg):
-    client_socket.send(msg)
-
-parser = InputParser()
-
 ''' main loop '''
-# wait for user input, process it as command or outgoing message
-while True:
-    from_console = input()
-    parser.parse_input(from_console)
-    if parser.input_type == InputType.COMMAND:
-        handle_command(parser.command, parser.args)
-    elif parser.input_type == InputType.MESSAGE:
-        send_message(parser.message_text)
+while connection_open:
+    text = input()
+    user_input = input_fields(text)
+    if user_input.cmd:
+        dispatch_command(user_input.cmd, user_input.argc, user_input.argv)
+    elif user_input.msg:
+        send_chat_message(user_input.msg)
+
+thread.join()
