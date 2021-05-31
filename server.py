@@ -23,28 +23,44 @@ def listen_to_client(socket):
     while True:
         incomming = socket.recv()
         message = irc_message.from_string(incomming)
-        op = message.operation
-        if op == CONNECT:
-            # handle user connection
-            print('connection from username ')
-        elif op == LIST_ROOMS:
-            # send room list
-            print('room list request received')
-        elif op == JOIN_ROOM:
-            # add user to room
-            print('adding user to room ')
-        elif op == LEAVE_ROOM:
-            # remove user from room
-            print('removing user from room')
-        elif op == LIST_USERS:
-            # send list of users in room
-            print('user list request received')
-        elif op == CLIENT_SEND_MESSAGE:
-            # broadcast message to room
-            print('client sending message: ')
-        else:
-            # uh oh, we don't recognize the message header...
-            print('unknown message from client')
+        dispatch_message(message)
+
+def connect(username, socket):
+    pass
+
+def list_rooms(message):
+    pass
+
+def join_room(message):
+    pass
+
+def leave_room(message):
+    pass
+
+def list_users(messages):
+    pass
+
+def client_send_message(message):
+    pass
+
+# unpack and check errors here!
+# if errors, dispatch to error handlers
+def dispatch_message(message):
+    op = message.operation
+    if op == CONNECT:
+        connect(message)
+    elif op == LIST_ROOMS:
+        list_rooms(message)
+    elif op == JOIN_ROOM:
+        join_room(message)
+    elif op == LEAVE_ROOM:
+        leave_room(message)
+    elif op == LIST_USERS:
+        list_users(message)
+    elif op == CLIENT_SEND_MESSAGE:
+        client_send_message(message)
+    else:
+        print('unknown message from client')
 
 # accept new connections
 while True:

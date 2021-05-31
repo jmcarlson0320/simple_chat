@@ -17,12 +17,16 @@ class CommandType(Enum):
 
 class InputParser:
     def __init__(self):
+        self.clear()
+
+    def clear(self):
         self.input_type = None
         self.command = None
         self.args = []
         self.message_text = ''
 
     def parse_input(self, text):
+        self.clear()
         if not text:
             self.input_type = InputType.NO_INPUT
         elif text[0] == CMD_DELIMITER:

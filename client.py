@@ -24,27 +24,41 @@ def listen_to_server(socket):
     while True:
         incomming = socket.recv()
         message = irc_message.from_string(incomming)
-        op = message.operation
-        if op == ROOM_LIST:
-            # print room list
-            print(message.body)
-        elif op == USER_LIST:
-            # print user list
-            print(message.body)
-        elif op == SERVER_DISPATCH_MESSAGE:
-            # print incomming chat message
-            print(message.body)
-        elif op == ERROR:
-            # handle error
-            print('server sent client an error: ' + message.body)
-        else:
-            # uh oh, we don't recognize the message header...
-            print('unknown message from server')
+        dispatch_message(message)
+        # dispatch message to handler
 
 # listen on a thread so we can also accept user input
 thread = Thread(target=listen_to_server, args=[client_socket])
 thread.start()
 
+def room_list(message):
+    pass
+
+def user_list(message):
+    pass
+
+def server_dispatch_message(message):
+    pass
+
+def error(message):
+    pass
+
+# unpack and check for errors here!
+# dispatch to error handlers
+def dispatch_message(message):
+        op = message.operation
+        if op == ROOM_LIST:
+            room_list(message)
+        elif op == USER_LIST:
+            user_list(message)
+        elif op == SERVER_DISPATCH_MESSAGE:
+            server_dispatch_message(message)
+        elif op == ERROR:
+            error(message)
+        else:
+            print('unknown message from server')
+
+''' user input code '''
 def handle_command(command, args):
     if command == CommandType.QUIT:
         sys.exit()
@@ -58,6 +72,7 @@ def send_message(msg):
 
 parser = InputParser()
 
+''' main loop '''
 # wait for user input, process it as command or outgoing message
 while True:
     from_console = input()
