@@ -48,8 +48,10 @@ thread.start()
 def handle_command(command, args):
     if command == CommandType.QUIT:
         sys.exit()
-    if command == CommandType.JOIN:
+    elif command == CommandType.JOIN:
         client_socket.send(IRCCommand(command, args))
+    else:
+        print('command not recognized')
 
 def send_message(msg):
     client_socket.send(msg)
