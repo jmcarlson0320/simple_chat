@@ -47,7 +47,7 @@ class MyIRCSocket:
         while not end_of_message:
             chunk = self.socket.recv(CHUNK_SIZE).decode()
             if not chunk:
-                print('could not receive')
+                return 0
 
             # find the end-of-message marker
             index_of_EOM = chunk.find(end_marker)

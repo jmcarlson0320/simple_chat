@@ -38,6 +38,11 @@ def new_connection(socket):
 def listen_to_client(user):
     while True:
         incomming = user.socket.recv()
+        if not incomming:
+            user.socket.close()
+            users.pop(user.name)
+            print('connection to ' + user.name + ' closed')
+            return
         message = irc_message.from_string(incomming)
         dispatch_message(user, message)
 
