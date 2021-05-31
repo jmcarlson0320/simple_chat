@@ -2,8 +2,7 @@ from irc_socket import *
 from threading import Thread
 from common import *
 from irc_message import *
-
-''' associate usernames with sockets '''
+from user import *
 
 PORT = 6000
 ADDRESS = '0.0.0.0'
@@ -15,17 +14,34 @@ server_socket.listen()
 
 print('listening on port: ' + str(PORT))
 
-# store all the client sockets
-client_sockets = set()
+# store users in set
+users = {}
+
+# setup new connection
+def new_connection(socket):
+    incomming = socket.recv()
+    message = irc_message.from_string(incomming)
+    op = message.operation
+    argv = message.argv
+    argc = message.argc
+    if message.operation == CONNECT and message.argc == 1:
+        new_user = User(message.argv[0], socket)
+        users[new_user.name] = new_user
+        print('new connection')
+        print('username: ' + message.argv[0])
+        listen_to_client(users[message.argv[0]])
+    else:
+        print('could not setup connection')
+        socket.close()
 
 # client socket listener
-def listen_to_client(socket):
+def listen_to_client(user):
     while True:
-        incomming = socket.recv()
+        incomming = user.socket.recv()
         message = irc_message.from_string(incomming)
-        dispatch_message(message)
+        dispatch_message(user, message)
 
-def connect(username, socket):
+def connect(message):
     pass
 
 def list_rooms(message):
@@ -45,7 +61,7 @@ def client_send_message(message):
 
 # unpack and check errors here!
 # if errors, dispatch to error handlers
-def dispatch_message(message):
+def dispatch_message(user, message):
     op = message.operation
     if op == CONNECT:
         connect(message)
@@ -66,12 +82,9 @@ def dispatch_message(message):
 while True:
     (client_socket, client_address) = server_socket.accept()
     print('new connection from: ' + str(client_address))
-    client_sockets.add(client_socket)
 
-    # each client connection is listened to on a different thread
-    thread = Thread(target=listen_to_client, args=[client_socket])
+    # handle each connection on a separate thread
+    thread = Thread(target=new_connection, args=[client_socket])
     thread.start()
 
-for s in client_sockets:
-    s.close()
 server_socket.close()

@@ -21,7 +21,11 @@ ERROR_TIMEOUT = 'ERROR_TIMEOUT'
 class irc_message:
     def __init__(self, operation, args=None, body=None):
         self.operation = operation
-        self.args = args
+        self.argv = args
+        if args:
+            self.argc = len(args)
+        else:
+            self.argc = 0
         self.body = body
 
     @classmethod
@@ -35,9 +39,9 @@ class irc_message:
 
         # get args
         if len(header_fields) > 1:
-            args = header_fields[1:]
+            argv = header_fields[1:]
         else:
-            args = None
+            argv = None
 
         # get body
         if len(text_lines) > 1:
@@ -46,7 +50,7 @@ class irc_message:
             body = None
 
         # construct message object
-        return cls(operation, args, body)
+        return cls(operation, argv, body)
 
     def to_string(self):
         # build message
