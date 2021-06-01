@@ -9,9 +9,13 @@ from irc_message import *
 PORT = 6000
 ADDRESS = '127.0.0.1'
 
+# setup client socket and connect to server
+client_socket = MyIRCSocket()
+client_socket.connect(ADDRESS, PORT)
+
 # signals client to shutdown
 connection_lock = Lock()
-connection_open = False;
+connection_open = True
 
 def new_connection(socket):
     username = input('enter a userid: ')
@@ -49,13 +53,19 @@ def handle_message(message):
         print('unknown message from server')
 
 def room_list(message):
-    print(message.body)
+    if message.body:
+        print(message.body)
+    else:
+        print('[none]')
 
 def user_list(message):
-    pass
+    if message.body:
+        print(message.body)
+    else:
+        print('[none]')
 
 def server_dispatch_message(message):
-    print(message.body)
+    print(message.argv[1] + ': ' + message.body)
 
 def error(message):
     print(message.body)
@@ -68,27 +78,17 @@ def dispatch_command(command, argc, argv):
         msg = JOIN_ROOM + ' ' + argv[0]
         client_socket.send(msg)
     elif command == 'leave':
-        pass
-    elif command == 'listrooms':
+        client_socket.send(LEAVE_ROOM)
+    elif command == 'rooms':
         client_socket.send(LIST_ROOMS)
-    elif command == 'listusers':
-        pass
+    elif command == 'users':
+        client_socket.send(LIST_USERS)
     else:
         print('command not recognized')
 
+# not sure how to do this one!!!
+# threads make it complicated...
 def quit_program():
-    pass
-
-def join():
-    pass
-
-def leave():
-    pass
-
-def listrooms():
-    pass
-
-def listusers():
     pass
 
 def send_chat_msg(text):
@@ -100,11 +100,6 @@ def send_chat_msg(text):
 def main():
     global connection_open
 
-    # setup client socket and connect to server
-    client_socket = MyIRCSocket()
-    client_socket.connect(ADDRESS, PORT)
-
-    connection_open = True
 
     # listen on a thread so we can also accept user input
     thread = Thread(target=new_connection, args=[client_socket])

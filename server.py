@@ -12,8 +12,7 @@ users_lock = Lock()
 users = {}
 
 rooms_lock = Lock()
-rooms = {
-}
+rooms = {}
 
 def new_connection(socket):
     incomming = socket.recv()
@@ -46,6 +45,12 @@ def listen_to_client(user):
             users_lock.acquire()
             users.pop(user.name)
             users_lock.release()
+
+            rooms_lock.acquire()
+            rooms[user.room].remove(user)
+            rooms_lock.release()
+
+            user.room = None
 
             print('connection to ' + user.name + ' closed')
             return
@@ -80,24 +85,32 @@ def join_room(user, message):
     if message.argc != 1:
         return
     if user.room:
+        rooms_lock.acquire()
         rooms[user.room].remove(user)
+        rooms_lock.release()
     roomid = message.argv[0]
     if roomid not in rooms:
+        rooms_lock.acquire()
         rooms[roomid] = set()
+        rooms_lock.release()
+    rooms_lock.acquire()
     rooms[roomid].add(user)
+    rooms_lock.release()
     user.room = roomid
 
 def leave_room(user):
     if not user.room:
         return
-    rooms[roomid].remove(user)
+    rooms_lock.acquire()
+    rooms[user.room].remove(user)
+    rooms_lock.release()
     user.room = None
 
 def list_users(user):
     if not user.room:
         return
     header = USER_LIST
-    usersnames = []
+    usernames = []
     for users in rooms[user.room]:
         usernames.append(users.name)
     body = '\n'.join(usernames)
@@ -107,13 +120,13 @@ def list_users(user):
 def client_send_message(user, message):
     if not user.room:
         return 
-    header = SERVER_DISPATCH_MESSAGE
-    body = message.body
-    msg = header + '\n' + body
-    print(msg)
+    dest = user.room
+    src = user.name
+    msg = irc_message(SERVER_DISPATCH_MESSAGE, [dest, src], message.body)
+    print(msg.to_string())
     for users in rooms[user.room]:
         if users.name != user.name:
-            users.socket.send(msg)
+            users.socket.send(msg.to_string())
 
 def main():
     # setup listening socket

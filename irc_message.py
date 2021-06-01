@@ -17,7 +17,6 @@ KEEP_ALIVE = 'KEEP_ALIVE'
 ERROR_UNSPECIFIED = 'ERROR_UNSPECIFIED'
 ERROR_TIMEOUT = 'ERROR_TIMEOUT'
 
-
 class irc_message:
     def __init__(self, operation, args=None, body=None):
         self.operation = operation
@@ -55,6 +54,6 @@ class irc_message:
     def to_string(self):
         header = self.operation
         if self.argv:
-            header = header + ' '.join(self.argv)
+            header = header + ' ' + ' '.join(self.argv)
         msg = header + '\n' + self.body
         return msg
