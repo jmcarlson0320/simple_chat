@@ -13,25 +13,7 @@ users = {}
 
 rooms_lock = Lock()
 rooms = {
-    'room1': set(),
-    'mathchat': set(),
-    'sexytimeverniiicehowmuch': set()
 }
-
-def listen_to_client(user):
-    while True:
-        incomming = user.socket.recv()
-        if not incomming:
-            user.socket.close()
-
-            users_lock.acquire()
-            users.pop(user.name)
-            users_lock.release()
-
-            print('connection to ' + user.name + ' closed')
-            return
-        message = irc_message.from_string(incomming)
-        handle_message(user, message)
 
 def new_connection(socket):
     incomming = socket.recv()
@@ -55,31 +37,20 @@ def new_connection(socket):
         socket.send(response.to_string())
         socket.close()
 
-def list_rooms(user):
-    header = ROOM_LIST
-    room_names = rooms.keys()
-    body = '\n'.join(room_names)
-    msg = header + '\n' + body
-    user.socket.send(msg)
+def listen_to_client(user):
+    while True:
+        incomming = user.socket.recv()
+        if not incomming:
+            user.socket.close()
 
-def join_room(user, message):
-    if message.argc != 1:
-        return
-    roomid = message.argv[0]
-    if roomid not in rooms:
-        rooms[roomid] = set()
-        rooms[roomid].add(user)
-    else:
-        rooms[roomid].add(user)
+            users_lock.acquire()
+            users.pop(user.name)
+            users_lock.release()
 
-def leave_room(message):
-    pass
-
-def list_users(messages):
-    pass
-
-def client_send_message(message):
-    pass
+            print('connection to ' + user.name + ' closed')
+            return
+        message = irc_message.from_string(incomming)
+        handle_message(user, message)
 
 # unpack and check errors here!
 # if errors, dispatch to error handlers
@@ -90,13 +61,59 @@ def handle_message(user, message):
     elif op == JOIN_ROOM:
         join_room(user, message)
     elif op == LEAVE_ROOM:
-        leave_room(message)
+        leave_room(user)
     elif op == LIST_USERS:
-        list_users(message)
+        list_users(user)
     elif op == CLIENT_SEND_MESSAGE:
-        client_send_message(message)
+        client_send_message(user, message)
     else:
         print('unknown message from client')
+
+def list_rooms(user):
+    header = ROOM_LIST
+    room_names = rooms.keys()
+    body = '\n'.join(room_names)
+    msg = header + '\n' + body
+    user.socket.send(msg)
+
+def join_room(user, message):
+    if message.argc != 1:
+        return
+    if user.room:
+        rooms[user.room].remove(user)
+    roomid = message.argv[0]
+    if roomid not in rooms:
+        rooms[roomid] = set()
+    rooms[roomid].add(user)
+    user.room = roomid
+
+def leave_room(user):
+    if not user.room:
+        return
+    rooms[roomid].remove(user)
+    user.room = None
+
+def list_users(user):
+    if not user.room:
+        return
+    header = USER_LIST
+    usersnames = []
+    for users in rooms[user.room]:
+        usernames.append(users.name)
+    body = '\n'.join(usernames)
+    msg = header + '\n' + body
+    user.socket.send(msg)
+
+def client_send_message(user, message):
+    if not user.room:
+        return 
+    header = SERVER_DISPATCH_MESSAGE
+    body = message.body
+    msg = header + '\n' + body
+    print(msg)
+    for users in rooms[user.room]:
+        if users.name != user.name:
+            users.socket.send(msg)
 
 def main():
     # setup listening socket
