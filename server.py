@@ -1,6 +1,7 @@
 from irc_socket import *
 from threading import Thread
 from threading import Lock
+from threading import Event
 from common import *
 from irc_message import *
 from user import *
@@ -46,9 +47,10 @@ def listen_to_client(user):
             users.pop(user.name)
             users_lock.release()
 
-            rooms_lock.acquire()
-            rooms[user.room].remove(user)
-            rooms_lock.release()
+            if user.room:
+                rooms_lock.acquire()
+                rooms[user.room].remove(user)
+                rooms_lock.release()
 
             user.room = None
 
@@ -75,11 +77,8 @@ def handle_message(user, message):
         print('unknown message from client')
 
 def list_rooms(user):
-    header = ROOM_LIST
-    room_names = rooms.keys()
-    body = '\n'.join(room_names)
-    msg = header + '\n' + body
-    user.socket.send(msg)
+    msg = irc_message(ROOM_LIST, body='\n'.join(rooms.keys()))
+    user.socket.send(msg.to_string())
 
 def join_room(user, message):
     if message.argc != 1:
@@ -109,13 +108,11 @@ def leave_room(user):
 def list_users(user):
     if not user.room:
         return
-    header = USER_LIST
     usernames = []
     for users in rooms[user.room]:
         usernames.append(users.name)
-    body = '\n'.join(usernames)
-    msg = header + '\n' + body
-    user.socket.send(msg)
+    msg = irc_message(USER_LIST, body='\n'.join(usernames))
+    user.socket.send(msg.to_string())
 
 def client_send_message(user, message):
     if not user.room:

@@ -3,6 +3,7 @@ from user_input import *
 import sys
 from threading import Thread
 from threading import Lock
+from threading import Event
 from common import *
 from irc_message import *
 
@@ -19,8 +20,10 @@ connection_open = True
 
 def new_connection(socket):
     username = input('enter a userid: ')
-    msg = CONNECT + ' ' + username
-    socket.send(msg)
+    while not username:
+        username = input('enter a userid: ')
+    msg = irc_message(CONNECT, args=[username])
+    socket.send(msg.to_string())
     listen_to_server(socket)
 
 # runs in a thread, handles incomming messages
@@ -42,30 +45,30 @@ def listen_to_server(socket):
 def handle_message(message):
     op = message.operation
     if op == ROOM_LIST:
-        room_list(message)
+        print_user_list(message.body)
     elif op == USER_LIST:
-        user_list(message)
+        print_user_list(message.body)
     elif op == SERVER_DISPATCH_MESSAGE:
-        server_dispatch_message(message)
+        incomming_chat_message(message.argv[1], message.argv[0], message.body)
     elif op == ERROR:
         error(message)
     else:
         print('unknown message from server')
 
-def room_list(message):
-    if message.body:
-        print(message.body)
-    else:
+def print_room_list(rooms):
+    if not rooms:
         print('[none]')
+        return
+    print(rooms)
 
-def user_list(message):
-    if message.body:
-        print(message.body)
-    else:
+def print_user_list(users):
+    if not users:
         print('[none]')
+        return
+    print(users)
 
-def server_dispatch_message(message):
-    print(message.argv[1] + ': ' + message.body)
+def incomming_chat_message(src, dest, body):
+    print('[' + src + ']: ' + body)
 
 def error(message):
     print(message.body)
@@ -92,14 +95,11 @@ def quit_program():
     pass
 
 def send_chat_msg(text):
-    header = CLIENT_SEND_MESSAGE
-    body = text
-    msg = header + '\n' + body
-    client_socket.send(msg)
+    msg = irc_message(CLIENT_SEND_MESSAGE, body=text)
+    client_socket.send(msg.to_string())
 
 def main():
     global connection_open
-
 
     # listen on a thread so we can also accept user input
     thread = Thread(target=new_connection, args=[client_socket])
@@ -114,7 +114,6 @@ def main():
             send_chat_msg(user_input.msg)
 
     thread.join()
-
 
 if __name__ == '__main__':
     main()

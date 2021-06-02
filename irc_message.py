@@ -3,6 +3,7 @@ from enum import Enum
 # message operation codes
 ERROR = 'ERROR'
 CONNECT = 'CONNECT'
+DISCONNECT = 'DISCONNECT'
 LIST_ROOMS = 'LIST_ROOMS'
 JOIN_ROOM = 'JOIN_ROOM'
 LEAVE_ROOM = 'LEAVE_ROOM'
@@ -55,5 +56,7 @@ class irc_message:
         header = self.operation
         if self.argv:
             header = header + ' ' + ' '.join(self.argv)
-        msg = header + '\n' + self.body
+        msg = header
+        if self.body:
+            msg += '\n' + self.body
         return msg
