@@ -34,7 +34,9 @@ def listen_to_server(socket):
         if not incomming:
             print('could not connect, press any key to exit...')
             socket.close()
+            connection_lock.acquire()
             connection_open = False
+            connection_lock.release()
             return
         message = irc_message.from_string(incomming)
         handle_message(message)
