@@ -10,6 +10,8 @@ import time
 PORT = 6000
 ADDRESS = '0.0.0.0'
 
+server_socket = MyIRCSocket()
+
 users_lock = Lock()
 users = {}
 
@@ -17,7 +19,13 @@ rooms_lock = Lock()
 rooms = {}
 
 def new_connection(socket):
-    incomming = socket.recv()
+    try:
+        incomming = socket.recv()
+    except ConnectionResetError:
+        print('connection reset by peer')
+        socket.close()
+        return
+
     if incomming == 0:
         print('connection closed immediately')
         socket.close()
@@ -143,9 +151,14 @@ def log_message(message):
     print('[' + time_stamp + ']\n' + message.to_string())
 
 def main():
+    global server_socket
     # setup listening socket
     server_socket = MyIRCSocket()
-    server_socket.bind(ADDRESS, PORT)
+    try:
+        server_socket.bind(ADDRESS, PORT)
+    except OSError:
+        print('address already in use')
+        return
     server_socket.listen()
 
     client_threads = []
@@ -166,4 +179,11 @@ def main():
     server_socket.close()
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('\nexiting...')
+        server_socket.close()
+        for user in users.values():
+            user.socket.close()
+
