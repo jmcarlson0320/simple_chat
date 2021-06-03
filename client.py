@@ -53,14 +53,12 @@ def listen_to_server(socket):
         handle_message(message)
         # dispatch message to handler
 
-# unpack and check for errors here!
-# dispatch to error handlers
 def handle_message(message):
     op = message.operation
     if op == ROOM_LIST:
         print_room_list(message.body)
     elif op == USER_LIST:
-        print_user_list(message.body)
+        print_user_list(message.argv[0], message.body)
     elif op == SERVER_DISPATCH_MESSAGE:
         incomming_chat_message(message.argv[0], message.argv[1], message.body)
     elif op == ERROR:
@@ -70,23 +68,29 @@ def handle_message(message):
 
 def print_room_list(roomlist):
     global current_rooms
-    print('chatrooms: ', end='')
+    global chat_target
+    print('[chatrooms]: ', end='')
     if not roomlist:
         print('[no rooms]')
         return
     roomlist = roomlist.split(' ')
     for i in range(len(roomlist)):
-        if roomlist[i] in current_rooms:
-            roomlist[i] = '*' + roomlist[i]
+        if roomlist[i] == chat_target:
+            roomlist[i] = '>>' + roomlist[i] + '*'
+        elif roomlist[i] in current_rooms:
+            roomlist[i] = roomlist[i] + '*'
 
     print(' '.join(roomlist))
 
-def print_user_list(users):
-    print('users in room: ', end='')
+def print_user_list(roomid, users):
+    print('[' + roomid + ']: ', end='')
     if not users:
         print('[no users]')
         return
-    print(users)
+    userlist = users.split(' ')
+    for i in range(len(userlist)):
+        userlist[i] = "'" + userlist[i] + "'"
+    print(' '.join(userlist))
 
 def time_stamp():
     t = time.localtime()
@@ -94,7 +98,8 @@ def time_stamp():
     return clock_time
 
 def incomming_chat_message(src, dest, body):
-    print('[' + dest + '][' + src + ']: ' + body)
+    if body:
+        print('[' + dest + '][' + src + ']: ' + body)
 
 def error(message):
     print(message.body)
@@ -197,7 +202,8 @@ def main():
             if not chat_target:
                 print('chat target not specified, join a room or set chat target with ":to"')
             else:
-                send_chat_msg(user_input.msg, username, chat_target)
+                if user_input.msg:
+                    send_chat_msg(user_input.msg, username, chat_target)
 
     thread.join()
 
