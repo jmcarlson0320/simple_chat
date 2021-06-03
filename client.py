@@ -26,6 +26,8 @@ connection_open = True
 current_rooms_lock = Lock()
 current_rooms = []
 
+chat_target = None
+
 def new_connection(socket):
     global username
     username = input('enter a userid: ')
@@ -92,7 +94,7 @@ def time_stamp():
     return clock_time
 
 def incomming_chat_message(src, dest, body):
-    print('[' + src + ']: ' + body)
+    print('[' + dest + '][' + src + ']: ' + body)
 
 def error(message):
     print(message.body)
@@ -100,7 +102,7 @@ def error(message):
 ''' handle user commands '''
 def dispatch_command(command, argc, argv):
     global current_rooms
-    print(current_rooms)
+    global chat_target
     if command == 'quit':
         quit_program()
     elif command == 'join':
@@ -110,6 +112,7 @@ def dispatch_command(command, argc, argv):
         roomid = argv[0]
         send_join_request(roomid)
         add_to_current_rooms(roomid)
+        chat_target = roomid
     elif command == 'leave':
         if argc != 1:
             print('must provide room id')
@@ -117,6 +120,8 @@ def dispatch_command(command, argc, argv):
         roomid = argv[0]
         send_leave_request(roomid)
         remove_from_current_rooms(roomid)
+        if chat_target == roomid:
+            chat_target = None
     elif command == 'rooms':
         request_room_list()
     elif command == 'users':
@@ -129,7 +134,11 @@ def dispatch_command(command, argc, argv):
         if argc < 1:
             print('must provide a room id')
             return
-        send_chat_msg(' '.join(argv[1:]), username, argv[0])
+        roomid = argv[0]
+        if roomid in current_rooms:
+            chat_target = roomid
+        else:
+            print('must be a member of target room')
     else:
         print('command not recognized')
 
@@ -172,6 +181,8 @@ def send_chat_msg(text, userid, roomid):
 
 def main():
     global connection_open
+    global username
+    global chat_target
 
     # listen on a thread so we can also accept user input
     thread = Thread(target=new_connection, args=[client_socket])
@@ -183,7 +194,10 @@ def main():
         if user_input.cmd:
             dispatch_command(user_input.cmd, user_input.argc, user_input.argv)
         else:
-            print('chatting w/out command not implemented')
+            if not chat_target:
+                print('chat target not specified, join a room or set chat target with ":to"')
+            else:
+                send_chat_msg(user_input.msg, username, chat_target)
 
     thread.join()
 

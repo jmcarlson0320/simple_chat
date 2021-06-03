@@ -18,6 +18,10 @@ rooms = {}
 
 def new_connection(socket):
     incomming = socket.recv()
+    if incomming == 0:
+        print('connection closed immediately')
+        socket.close()
+        return
     message = irc_message.from_string(incomming)
     op = message.operation
     argv = message.argv
