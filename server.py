@@ -51,7 +51,7 @@ def listen_to_client(user):
 
             rooms_lock.acquire()
             for room in user.rooms:
-                rooms[user.room].remove(user)
+                rooms[room].remove(user)
             rooms_lock.release()
 
             print('connection to ' + user.name + ' closed')
@@ -80,7 +80,9 @@ def handle_message(user, message):
         roomid = message.argv[0]
         send_userlist(user.socket, roomid)
     elif op == CLIENT_SEND_MESSAGE:
-        dispatch_message_to_room(message.body, user, message.argv[0])
+        src = message.argv[0]
+        dest = message.argv[1]
+        dispatch_message_to_room(message.body, user, dest)
     else:
         print('unknown message from client: ' + message.to_string())
         # on error, close connection to client
@@ -127,10 +129,10 @@ def dispatch_message_to_room(text, user, roomid):
         return 
     src = user.name
     dest = roomid
-    msg = irc_message(SERVER_DISPATCH_MESSAGE, [src, dest], message.body)
+    msg = irc_message(SERVER_DISPATCH_MESSAGE, [src, dest], text)
     for dest_user in rooms[roomid]:
         if user.name != dest_user.name:
-            user.socket.send(msg.to_string())
+            dest_user.socket.send(msg.to_string())
 
 def log_message(message):
     time_stamp = time.ctime(time.time())

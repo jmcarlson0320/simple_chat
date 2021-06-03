@@ -125,6 +125,11 @@ def dispatch_command(command, argc, argv):
             return
         roomid = argv[0]
         request_user_list(roomid)
+    elif command == 'to':
+        if argc < 1:
+            print('must provide a room id')
+            return
+        send_chat_msg(' '.join(argv[1:]), username, argv[0])
     else:
         print('command not recognized')
 
@@ -177,8 +182,8 @@ def main():
         user_input = input_fields(text)
         if user_input.cmd:
             dispatch_command(user_input.cmd, user_input.argc, user_input.argv)
-        elif user_input.msg:
-            send_chat_msg(user_input.msg)
+        else:
+            print('chatting w/out command not implemented')
 
     thread.join()
 
