@@ -148,6 +148,8 @@ def main():
     server_socket.bind(ADDRESS, PORT)
     server_socket.listen()
 
+    client_threads = []
+
     print('listening on port: ' + str(PORT))
 
     # accept new connections
@@ -157,7 +159,9 @@ def main():
 
         # handle each connection on a separate thread
         thread = Thread(target=new_connection, args=[client_socket])
+        thread.daemon = True
         thread.start()
+        client_threads.append(thread)
 
     server_socket.close()
 

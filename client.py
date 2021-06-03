@@ -209,12 +209,7 @@ def main():
     thread.start()
 
     while connection_open:
-        text = ''
-        try:
-            text = input()
-        except KeyboardInterrupt:
-            quit_program()
-            return
+        text = input()
 
         user_input = input_fields(text)
         if user_input.cmd:
@@ -224,4 +219,7 @@ def main():
                 send_chat_msg(user_input.msg, username, chat_target)
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        quit_program()
