@@ -18,6 +18,10 @@ KEEP_ALIVE = 'KEEP_ALIVE'
 ERROR_UNSPECIFIED = 'ERROR_UNSPECIFIED'
 ERROR_TIMEOUT = 'ERROR_TIMEOUT'
 
+# argument indices
+SRC = 0
+DEST = 1
+
 class irc_message:
     def __init__(self, operation, args=None, body=None):
         self.operation = operation

@@ -15,14 +15,19 @@ ADDRESS = '127.0.0.1'
 client_socket = MyIRCSocket()
 client_socket.connect(ADDRESS, PORT)
 
+# client's username
+username = ''
+
 # signals client to shutdown
 connection_lock = Lock()
 connection_open = True
 
 # room client is a member of
-current_room = None
+current_rooms_lock = Lock()
+current_rooms = []
 
 def new_connection(socket):
+    global username
     username = input('enter a userid: ')
     while not username:
         username = input('enter a userid: ')
@@ -55,24 +60,24 @@ def handle_message(message):
     elif op == USER_LIST:
         print_user_list(message.body)
     elif op == SERVER_DISPATCH_MESSAGE:
-        incomming_chat_message(message.argv[1], message.argv[0], message.body)
+        incomming_chat_message(message.argv[0], message.argv[1], message.body)
     elif op == ERROR:
         error(message)
     else:
         print('unknown message from server')
 
-def print_room_list(rooms):
-    global current_room
+def print_room_list(roomlist):
+    global current_rooms
     print('chatrooms: ', end='')
-    if not rooms:
+    if not roomlist:
         print('[no rooms]')
         return
-    rooms = rooms.split(' ')
-    for i in range(len(rooms)):
-        if rooms[i] == current_room:
-            rooms[i] = '*' + rooms[i]
+    roomlist = roomlist.split(' ')
+    for i in range(len(roomlist)):
+        if roomlist[i] in current_rooms:
+            roomlist[i] = '*' + roomlist[i]
 
-    print(' '.join(rooms))
+    print(' '.join(roomlist))
 
 def print_user_list(users):
     print('users in room: ', end='')
@@ -94,20 +99,32 @@ def error(message):
 
 ''' handle user commands '''
 def dispatch_command(command, argc, argv):
-    global current_room
+    global current_rooms
+    print(current_rooms)
     if command == 'quit':
         quit_program()
     elif command == 'join':
-        msg = JOIN_ROOM + ' ' + argv[0]
-        client_socket.send(msg)
-        current_room = argv[0]
+        if argc != 1:
+            print('must provide room id')
+            return
+        roomid = argv[0]
+        send_join_request(roomid)
+        add_to_current_rooms(roomid)
     elif command == 'leave':
-        client_socket.send(LEAVE_ROOM)
-        current_room = None
+        if argc != 1:
+            print('must provide room id')
+            return
+        roomid = argv[0]
+        send_leave_request(roomid)
+        remove_from_current_rooms(roomid)
     elif command == 'rooms':
-        client_socket.send(LIST_ROOMS)
+        request_room_list()
     elif command == 'users':
-        client_socket.send(LIST_USERS)
+        if argc != 1:
+            print('must provide room id')
+            return
+        roomid = argv[0]
+        request_user_list(roomid)
     else:
         print('command not recognized')
 
@@ -116,8 +133,36 @@ def dispatch_command(command, argc, argv):
 def quit_program():
     pass
 
-def send_chat_msg(text):
-    msg = irc_message(CLIENT_SEND_MESSAGE, body=text)
+def send_join_request(roomid):
+    msg = irc_message(JOIN_ROOM, args=[roomid])
+    client_socket.send(msg.to_string())
+
+def add_to_current_rooms(roomid):
+    current_rooms_lock.acquire()
+    current_rooms.append(roomid)
+    current_rooms_lock.release()
+
+def send_leave_request(roomid):
+    msg = irc_message(LEAVE_ROOM, args=[roomid])
+    client_socket.send(msg.to_string())
+
+def remove_from_current_rooms(roomid):
+    if roomid not in current_rooms:
+        return
+    current_rooms_lock.acquire()
+    current_rooms.remove(roomid)
+    current_rooms_lock.release()
+
+def request_room_list():
+    msg = irc_message(LIST_ROOMS)
+    client_socket.send(msg.to_string())
+
+def request_user_list(roomid):
+    msg = irc_message(LIST_USERS, args=[roomid])
+    client_socket.send(msg.to_string())
+
+def send_chat_msg(text, userid, roomid):
+    msg = irc_message(CLIENT_SEND_MESSAGE, args=[userid, roomid], body=text)
     client_socket.send(msg.to_string())
 
 def main():

@@ -31,7 +31,7 @@ def new_connection(socket):
 
         print('new user')
         print('username: ' + message.argv[0])
-        list_rooms(new_user)
+        send_roomlist(new_user.socket)
         listen_to_client(new_user)
     else:
         print('could not setup user, closing connection')
@@ -49,12 +49,10 @@ def listen_to_client(user):
             users.pop(user.name)
             users_lock.release()
 
-            if user.room:
-                rooms_lock.acquire()
+            rooms_lock.acquire()
+            for room in user.rooms:
                 rooms[user.room].remove(user)
-                rooms_lock.release()
-
-            user.room = None
+            rooms_lock.release()
 
             print('connection to ' + user.name + ' closed')
             return
@@ -67,71 +65,72 @@ def handle_message(user, message):
     log_message(message)
     op = message.operation
     if op == LIST_ROOMS:
-        list_rooms(user)
+        send_roomlist(user.socket)
     elif op == JOIN_ROOM:
-        join_room(user, message)
+        roomid = message.argv[0]
+        add_user_to_room(user, roomid)
+        for users in rooms[roomid]:
+            send_userlist(users.socket, roomid)
     elif op == LEAVE_ROOM:
-        leave_room(user)
+        roomid = message.argv[0]
+        if remove_user_from_room(user, roomid):
+            for users in rooms[roomid]:
+                send_userlist(users.socket, roomid)
     elif op == LIST_USERS:
-        list_users(user)
+        roomid = message.argv[0]
+        send_userlist(user.socket, roomid)
     elif op == CLIENT_SEND_MESSAGE:
-        client_send_message(user, message)
+        dispatch_message_to_room(message.body, user, message.argv[0])
     else:
         print('unknown message from client: ' + message.to_string())
         # on error, close connection to client
 
-def list_rooms(user):
+def send_roomlist(socket):
     msg = irc_message(ROOM_LIST, body=' '.join(rooms.keys()))
-    user.socket.send(msg.to_string())
+    socket.send(msg.to_string())
 
-def join_room(user, message):
-    if message.argc != 1:
+def add_user_to_room(user, roomid):
+    # if already a member, return
+    if roomid in user.rooms:
         return
-    if user.room:
-        rooms_lock.acquire()
-        rooms[user.room].remove(user)
-        rooms_lock.release()
-    roomid = message.argv[0]
-    if roomid not in rooms:
-        rooms_lock.acquire()
-        rooms[roomid] = set()
-        rooms_lock.release()
+
     rooms_lock.acquire()
+    # if new room
+    if roomid not in rooms:
+        rooms[roomid] = set()
     rooms[roomid].add(user)
     rooms_lock.release()
-    user.room = roomid
-    for users in rooms[roomid]:
-        list_users(users)
 
-def leave_room(user):
-    if not user.room:
-        return
+    user.rooms.append(roomid)
+
+def remove_user_from_room(user, roomid):
+    if roomid not in user.rooms:
+        return False
+
     rooms_lock.acquire()
-    rooms[user.room].remove(user)
+    rooms[roomid].remove(user)
     rooms_lock.release()
-    for users in rooms[user.room]:
-        list_users(users)
-    user.room = None
+    user.rooms.remove(roomid)
+    return True
 
-def list_users(user):
-    if not user.room:
+def send_userlist(socket, roomid):
+    if roomid not in rooms.keys():
         return
-    usernames = []
-    for users in rooms[user.room]:
-        usernames.append(users.name)
-    msg = irc_message(USER_LIST, body=' '.join(usernames))
-    user.socket.send(msg.to_string())
+    userids = []
+    for users in rooms[roomid]:
+        userids.append(users.name)
+    msg = irc_message(USER_LIST, args=[roomid], body=' '.join(userids))
+    socket.send(msg.to_string())
 
-def client_send_message(user, message):
-    if not user.room:
+def dispatch_message_to_room(text, user, roomid):
+    if roomid not in user.rooms:
         return 
-    dest = user.room
     src = user.name
-    msg = irc_message(SERVER_DISPATCH_MESSAGE, [dest, src], message.body)
-    print(msg.to_string())
-    for users in rooms[user.room]:
-        if users.name != user.name:
-            users.socket.send(msg.to_string())
+    dest = roomid
+    msg = irc_message(SERVER_DISPATCH_MESSAGE, [src, dest], message.body)
+    for dest_user in rooms[roomid]:
+        if user.name != dest_user.name:
+            user.socket.send(msg.to_string())
 
 def log_message(message):
     time_stamp = time.ctime(time.time())
