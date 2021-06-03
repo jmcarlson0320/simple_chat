@@ -43,7 +43,7 @@ def listen_to_server(socket):
     while True:
         incomming = socket.recv()
         if not incomming:
-            print('could not connect, press any key to exit...')
+            print('lost connection with server, press any key to exit...')
             socket.close()
             connection_lock.acquire()
             connection_open = False
@@ -99,17 +99,23 @@ def time_stamp():
 
 def incomming_chat_message(src, dest, body):
     if body:
-        print('[' + dest + '][' + src + ']: ' + body)
+        dest = '[' + dest + ']'
+        src = '<' + src + '>'
+        out = '[{0:s}]{1:<12s}{2:>18s} {3:s}'.format(time_stamp(), dest, src, body)
+        print(out)
+        #print('[' + time_stamp() + '][' + dest + ']\t<' + src + '> ' + body)
 
 def error(message):
     print(message.body)
 
 ''' handle user commands '''
 def dispatch_command(command, argc, argv):
+    global connection_open
     global current_rooms
     global chat_target
     if command == 'quit':
         quit_program()
+        connection_open = False
     elif command == 'join':
         if argc != 1:
             print('must provide room id')
@@ -150,7 +156,9 @@ def dispatch_command(command, argc, argv):
 # not sure how to do this one!!!
 # threads make it complicated...
 def quit_program():
-    pass
+    print('\nexiting...')
+    if client_socket:
+        client_socket.close()
 
 def send_join_request(roomid):
     msg = irc_message(JOIN_ROOM, args=[roomid])
@@ -189,23 +197,31 @@ def main():
     global username
     global chat_target
 
+    username = input('enter a userid: ')
+    while not username:
+        username = input('enter a userid: ')
+    msg = irc_message(CONNECT, args=[username])
+    client_socket.send(msg.to_string())
+
     # listen on a thread so we can also accept user input
-    thread = Thread(target=new_connection, args=[client_socket])
+    thread = Thread(target=listen_to_server, args=[client_socket])
+    thread.daemon = True
     thread.start()
 
     while connection_open:
-        text = input()
+        text = ''
+        try:
+            text = input()
+        except KeyboardInterrupt:
+            quit_program()
+            return
+
         user_input = input_fields(text)
         if user_input.cmd:
             dispatch_command(user_input.cmd, user_input.argc, user_input.argv)
         else:
-            if not chat_target:
-                print('chat target not specified, join a room or set chat target with ":to"')
-            else:
-                if user_input.msg:
-                    send_chat_msg(user_input.msg, username, chat_target)
-
-    thread.join()
+            if chat_target and user_input.msg:
+                send_chat_msg(user_input.msg, username, chat_target)
 
 if __name__ == '__main__':
     main()
