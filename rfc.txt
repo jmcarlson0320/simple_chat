@@ -1,0 +1,341 @@
+CS494								                   Portland State University
+Internet Draft                                                      June 4, 2021
+Intended status:
+Expires:
+
+
+                      Internet Relay Chat Class Project
+                      
+                      
+Copyright Notice
+
+This document includes the materials from the SampleRFC.pdf document from
+Internetworking Protocols CS494P at Portland State University which may be
+subject to copyright progection. The document is only for the use of students
+who participated in this project, TA and Instructor of CS494P Spring 2021
+course. This document may not be retained for longer than the class term.
+Unauthorized retention, duplication, distribution, or modification of
+copyrighted materials is prohibited.
+
+
+Abstract
+
+This RFC or Request For Comment Draft describes the communication protocol for
+an IRC-style client/server system for the Internetworking Protocols CS494P class
+at Portland State University.
+
+
+Table of Contents
+
+	1.	Introduction
+		1.1. Basic Information
+	2.	Message Infrastructure
+		2.1.	Generic Message Format
+			2.1.1.	Field Definitions
+			2.1.2.	Operation Codes
+		2.2.	Error Messages
+			2.2.1.	Usage
+			2.2.2.	Field Definitions
+			2.2.3.	Error Codes
+	3.	Label Semantics
+	4. Client Messages
+		4.1.	Client Connect
+			4.1.1.	Usage
+			4.1.2.	Field Definitions
+		4.2.	List Rooms
+			4.2.1.	Usage
+			4.2.2.	Field Definitions
+		4.3.	Create or Join Room
+			4.3.1.	Usage
+			4.3.2.	Field Definitions
+		4.4.	Leave Room
+			4.4.1.	Usage
+			4.4.2.	Field Definitions
+		4.5.	List Members in Room
+			4.5.1.	Usage
+			4.5.2.	Field Definitions
+		4.6.	Send Message
+			4.6.1.	Usage
+			4.6.2.	Field Definitions
+	5. Server Messsages
+		5.1.	Room List
+			5.1.1.	Usage
+			5.1.2.	Field Definitions
+		5.2.	User List
+			5.2.1.	Usage
+			5.2.2.	Field Definitions
+		5.3.	Dispatch Message
+			5.3.1.	Usage
+			5.3.2.	Field Definitions
+	6.	Error Handling
+	7.	Conclusion & Future Work
+	8.	Security Considerations
+	9.	IANA Considerations
+	10.	Acknowledgments
+	
+	
+	
+1. Introduction
+	
+	This document describes a protocol for an Internet Relay Chat
+	Application. Clients can connect to a chat server, receive a list of
+	available rooms, create a room, join an existing room and send messages
+	that are broadcast to each other client connected to the sender's room.
+	
+	1.1	Basic Information
+	
+		The communication protocol for this project uses TCP/IP with the
+		server listening on port 6060. Any client who connects to this port
+		can exchange information with the server. The Protocol assumes
+		clients and servers can send message back and forth at any time. The
+		number of connections or the number of users in a room is not
+		specified in the protocol. It is the responsibility of the
+		implementers to decide this and other details not mentioned in this
+		document.
+		
+		
+2. Conventions used in this document
+
+	In this document, the characters "<" and ">" surrounding a word indicate
+	a field in a message. In the actual message, this word including the
+	surrounding "<" and ">" are replaced with the contents of the field.
+
+    The end-of-message "<EOM>" token is assumed to append every message.
+
+
+3. Message Infrastructure
+
+	3.1	Generic Message Format
+	
+		<operation/error code> <arg1> <arg2> ... <argN>
+		<message body> <EOM>
+		
+		A message consists of a header followed by the message body on a new
+		line. The header consists of the operation/error code and may include
+        any number of arguments separated by a space.
+		
+		3.1.1. Field Definitions
+		
+			Operation Code: Consists of a character string in all caps. May
+			contain an underscore "_".
+			
+			Arguments: Consists of strings of alpha-numeric characters
+			separated by a space. The arguments themselves must not contain
+			any whitespace.
+			
+			Message Body: The beginning of the message body is marked by a 
+			newline character. The message body can contain any combination
+			of alpha-numeric characters including whitespace. The end of the
+			message is marked with the end of message token.
+			
+			EOM (end of message): The end of message token marks the end of
+			the message. It must consist of the characters: <EOM> including
+			the "<" and ">" symbols.
+			
+		3.1.2. Operation Codes
+		
+			CONNECT
+			LIST_ROOMS
+			JOIN_ROOM
+			LEAVE_ROOM
+			LIST_USERS
+			CLIENT_SEND_MESSAGE
+			ROOM_LIST
+			USER_LIST
+			SERVER_DISPATCH_MESSAGE
+
+    3.2. Error Messages
+
+        <error code>
+        <optional error message text>
+
+        3.2.1. Usage
+
+            Sent by either the client or server when a problem is encountered.
+
+        3.2.2. Field Definitions
+
+            Error Code: Specifies the kind of error that occurred.
+
+        3.2.3. Error Codes
+
+            ERROR_INVALID_MESSAGE
+            ERROR_UNSPECIFIED
+
+
+4. Name Syntax
+
+    Usernames and room names are strings of case-sensitive alpha-numeric
+    characters, excluding all whitespace characters. Names can be any length up
+    to a maximum of 20 characters.
+
+
+5. Client Messages
+
+    5.1. Client Connect
+
+        CONNECT <username>
+
+        5.1.1. Usage
+
+            A Client Connect Message is the first message sent from a client to
+            a server in order to establish a connection with the server. The
+            server must respond by sending a Room List message to the newly
+            connected client.
+
+        5.1.2. Field Definitions
+
+            Username: A character string conforming to the Name Syntax.
+
+    5.2. List Rooms
+
+        LIST_ROOMS
+
+        5.2.1. Usage
+
+            Sent by the client to the server to request a list of the available
+            chat rooms. The server responds by sending a Room List message
+            containing the names of the available rooms.
+
+    5.3. Create or Join Room
+
+        JOIN_ROOM <room id>
+
+        5.3.1. Usage
+
+            Sent by the client to the server to join an available room. The name
+            of the room is specified in the header argument. If the room does
+            not already exist, a new room with the specified name is created and
+            the client is added to the newly created room. The server responds
+            by sending the User List of the newly joined or created room to each
+            client currently in the room.
+
+        5.3.2. Field Definitions
+
+            Room ID: A character string conforming to the Name Syntax that
+            identifies the room to create or join.
+
+    5.4. Leave Room
+
+        LEAVE_ROOM <room id>
+
+        5.4.1. Usage
+
+            Sent by the client to the server to leave a specified room. The
+            server responds by sending the updated User List to each client
+            remaining in the room.
+
+        5.4.2. Field Definitions
+
+            Room ID: A character string conforming to the Name Syntax that
+            identifies the room to create or join.
+
+    5.5. Send Message
+
+        CLIENT_SEND_MESSAGE <user id> <room id>
+        <message body>
+
+        5.5.1. Usage
+
+            Sent by the client when sending a message to a room the client is
+            joined to. The server responds by sending a Dispatch Message to
+            each other user in the room.
+
+        5.5.2. Field Definitions
+
+            User ID: A character string conforming to the Name Syntax that
+            indicates the sender.
+
+            Room ID: A character string conforming to the Name Syntax that
+            identifies the destination room.
+
+
+6. Server Messages
+
+    6.1. Room List
+
+        ROOM_LIST
+        <room list>
+
+        6.1.1. Usage
+
+            Sent by the server in response to a client's List Rooms message.
+            Also automatically sent when a client first connects to a server.
+            The message body contains the list of all available rooms.
+
+        6.1.2. Field Definitions
+
+            Room List: The list of Room IDs separated by white space.
+
+    6.2. User List
+
+        USER_LIST <user id>
+        <user list>
+
+        6.2.1. Usage
+
+	        Sent by to server in response to a client's List Users messasge.
+            Also automatically sent when a client joins or leaves a room. The
+            message body contains the list of users in the room.
+
+        6.2.2. Field Definitions
+
+            User ID: A character string conforming to the Name Syntax that
+            indicates the sender.
+	
+	        User List: The list of User IDs separated by white space.
+	
+	6.3. Dispatch Message
+
+        SERVER_DISPATCH_MESSAGE <user id> <room id>
+        <message body>
+	
+        6.3.1. Usage
+            
+            Sent by the server in response to a client's Send Message request.
+            The message is dispatched to every client joind to the sender's
+            room.
+
+        6.3.2. Field Definitions
+
+            User ID: A character string conforming to the Name Syntax that
+            indicates the sender.
+	
+            Room ID: A character string conforming to the Name Syntax that
+            identifies the destination room.
+	
+            Message Body: The text of the message to be sent.
+
+
+8. Error Handling
+
+    It is optional whether a client or server notifies the other in the event of
+    an error. However, both the client and the server must detect when the link
+    between them is terminated. In that case, the server must remove the
+    disconnected client from all rooms and the client must consider its
+    connection to the server closed.
+
+
+9. Conclusion
+
+    This protocol provides a basic framework for passing messages between
+    clients via a central server.
+
+
+10. Security Considerations
+
+    Messages sent using this system are not protected against inspection or
+    tampering. The server sees all messages sent to it. Users wishing to use
+    this system for secure comminication should implement their own
+    user-to-user encryption protocol.
+
+
+11. Author's Addresses
+
+    jmc34@gmail.com
+	
+	
+	
+	
+	
+	
