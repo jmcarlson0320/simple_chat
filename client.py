@@ -101,9 +101,8 @@ def incomming_chat_message(src, dest, body):
     if body:
         dest = '[' + dest + ']'
         src = '<' + src + '>'
-        out = '[{0:s}]{1:<12s}{2:>18s} {3:s}'.format(time_stamp(), dest, src, body)
+        out = '[{0:s}]{1:s} {2:s} {3:s}'.format(time_stamp(), dest, src, body)
         print(out)
-        #print('[' + time_stamp() + '][' + dest + ']\t<' + src + '> ' + body)
 
 def error(message):
     print(message.body)

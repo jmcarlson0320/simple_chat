@@ -30,17 +30,17 @@ def new_connection(socket):
         print('connection closed immediately')
         socket.close()
         return
+
     message = irc_message.from_string(incomming)
     op = message.operation
     argv = message.argv
     argc = message.argc
+
     if message.operation == CONNECT and message.argc == 1:
         new_user = User(message.argv[0], socket)
-
         users_lock.acquire()
         users[new_user.name] = new_user
         users_lock.release()
-
         print('new user')
         print('username: ' + message.argv[0])
         send_roomlist(new_user.socket)
@@ -148,7 +148,10 @@ def dispatch_message_to_room(text, user, roomid):
 
 def log_message(message):
     time_stamp = time.ctime(time.time())
-    print('[' + time_stamp + ']\n' + message.to_string())
+    header = message.operation
+    if message.argv:
+        header = header + ' ' + ' '.join(message.argv)
+    print('[' + time_stamp + '] ' + header)
 
 def main():
     global server_socket
