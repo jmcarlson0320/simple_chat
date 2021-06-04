@@ -23,6 +23,7 @@ class MyIRCSocket:
     def send(self, msg):
         # add end marker
         msg += EOM
+
         # count bytes sent to make sure we send all of the message
         # could take multiple calls to send()
         total_sent = 0
