@@ -1,6 +1,6 @@
 # Simple Chat
 
-Simple Chat is an Internet Rely Chat client and server application for Portland State University's CS494P Internetworking Protocols class. It is written in python and implements the protocol defined in rfc.txt.
+Simple Chat is an Internet Relay Chat client and server application for Portland State University's CS494P Internetworking Protocols class. It is written in python and implements the protocol defined in rfc.txt.
 
 ## Installation
 
